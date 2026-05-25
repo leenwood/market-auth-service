@@ -1,0 +1,66 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the server binary
+    cmds:
+      - go build -o bin/server ./cmd/server
+
+  run:
+    desc: Run the server locally
+    cmds:
+      - go run ./cmd/server
+
+  test:
+    desc: Run all unit tests with race detector
+    cmds:
+      - go test ./... -v -race -count=1
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run ./...
+
+  tidy:
+    desc: Tidy go.mod and go.sum
+    cmds:
+      - go mod tidy
+
+  swag:
+    desc: Regenerate Swagger docs from annotations
+    cmds:
+      - swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+
+  seed:
+    desc: Seed the database with test users (requires DATABASE_DSN)
+    cmds:
+      - go run ./cmd/seed
+
+  migrate:up:
+    desc: Apply database migrations (requires DATABASE_DSN)
+    cmds:
+      - psql "{{.DATABASE_DSN}}" -f migrations/000001_create_users.up.sql
+
+  migrate:down:
+    desc: Roll back database migrations (requires DATABASE_DSN)
+    cmds:
+      - psql "{{.DATABASE_DSN}}" -f migrations/000001_create_users.down.sql
+
+  keys:generate:
+    desc: Generate RSA key pair for JWT signing
+    cmds:
+      - openssl genrsa -out private.pem 2048
+      - openssl rsa -in private.pem -pubout -out public.pem
+      - echo 'Export with:'
+      - echo '  export JWT_PRIVATE_KEY="$(cat private.pem)"'
+      - echo '  export JWT_PUBLIC_KEY="$(cat public.pem)"'
+
+  docker:up:
+    desc: Build and start all services via docker compose
+    cmds:
+      - docker compose up --build -d
+
+  docker:down:
+    desc: Stop and remove all containers and volumes
+    cmds:
+      - docker compose down -v
