@@ -37,14 +37,24 @@ tasks:
       - go run ./cmd/seed
 
   migrate:up:
-    desc: Apply database migrations (requires DATABASE_DSN)
+    desc: Apply all pending migrations
     cmds:
-      - psql "{{.DATABASE_DSN}}" -f migrations/000001_create_users.up.sql
+      - go run ./cmd/migrate -- -direction=up
 
   migrate:down:
-    desc: Roll back database migrations (requires DATABASE_DSN)
+    desc: Roll back the last migration
     cmds:
-      - psql "{{.DATABASE_DSN}}" -f migrations/000001_create_users.down.sql
+      - go run ./cmd/migrate -- -direction=down
+
+  migrate:status:
+    desc: Show migration status
+    cmds:
+      - go run ./cmd/migrate -- -direction=status
+
+  migrate:reset:
+    desc: Roll back all migrations
+    cmds:
+      - go run ./cmd/migrate -- -direction=reset
 
   keys:generate:
     desc: Generate RSA key pair for JWT signing

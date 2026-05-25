@@ -27,7 +27,7 @@ services:
       POSTGRES_DB: authdb
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations/000001_create_users.up.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./internal/app/migrate/migrations/00001_create_users.sql:/docker-entrypoint-initdb.d/001_init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U auth -d authdb"]
       interval: 5s
