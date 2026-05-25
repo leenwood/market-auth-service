@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leenwood/market-auth-service/internal/domain"
 )
@@ -67,18 +68,13 @@ func (r *UserRepository) scanUser(ctx context.Context, query string, args ...any
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrUserNotFound
 	}
-	return u, err
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
 }
 
 func isUniqueViolation(err error) bool {
-	return err != nil && containsCode(err.Error(), "23505")
-}
-
-func containsCode(msg, code string) bool {
-	for i := 0; i+len(code) <= len(msg); i++ {
-		if msg[i:i+len(code)] == code {
-			return true
-		}
-	}
-	return false
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
