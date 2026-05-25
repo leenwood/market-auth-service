@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -101,7 +102,7 @@ func (s *AuthService) Refresh(ctx context.Context, refreshToken string) (*TokenP
 
 func (s *AuthService) Logout(ctx context.Context, refreshToken string) error {
 	err := s.tokens.Delete(ctx, refreshToken)
-	if err != nil && err != domain.ErrTokenNotFound {
+	if err != nil && !errors.Is(err, domain.ErrTokenNotFound) {
 		return err
 	}
 	return nil
