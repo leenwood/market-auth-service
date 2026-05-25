@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/leenwood/market-auth-service/internal/domain"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
 	goredis "github.com/redis/go-redis/v9"
 )
 

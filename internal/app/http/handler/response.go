@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/leenwood/market-auth-service/internal/domain"
-	"github.com/leenwood/market-auth-service/internal/service"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
+	"github.com/leenwood/market-auth-service/internal/core/usecase"
 )
 
 type userResponse struct {
@@ -16,7 +16,7 @@ type userResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type tokenResp struct {
+type tokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	ExpiresIn    int64  `json:"expires_in"`
@@ -32,8 +32,8 @@ func toUserResponse(u *domain.User) userResponse {
 	}
 }
 
-func tokenResponse(p *service.TokenPair) tokenResp {
-	return tokenResp{
+func toTokenResponse(p *usecase.TokenPair) tokenResponse {
+	return tokenResponse{
 		AccessToken:  p.AccessToken,
 		RefreshToken: p.RefreshToken,
 		ExpiresIn:    p.ExpiresIn,

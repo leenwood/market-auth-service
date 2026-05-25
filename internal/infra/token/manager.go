@@ -13,9 +13,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/leenwood/market-auth-service/internal/core/port"
 )
 
-type Claims struct {
+type claims struct {
 	Email string `json:"email"`
 	Role  string `json:"role"`
 	jwt.RegisteredClaims
@@ -53,9 +54,10 @@ func NewManager(privatePEM, publicPEM string, accessTTL time.Duration) (*Manager
 	return m, nil
 }
 
+// IssueAccessToken implements port.TokenManager.
 func (m *Manager) IssueAccessToken(userID uuid.UUID, email, role string) (string, error) {
 	now := time.Now()
-	claims := Claims{
+	c := claims{
 		Email: email,
 		Role:  role,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -64,10 +66,10 @@ func (m *Manager) IssueAccessToken(userID uuid.UUID, email, role string) (string
 			ExpiresAt: jwt.NewNumericDate(now.Add(m.accessTTL)),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	return token.SignedString(m.privateKey)
+	return jwt.NewWithClaims(jwt.SigningMethodRS256, c).SignedString(m.privateKey)
 }
 
+// IssueRefreshToken implements port.TokenManager.
 func (m *Manager) IssueRefreshToken() (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -76,8 +78,14 @@ func (m *Manager) IssueRefreshToken() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-func (m *Manager) ParseAccessToken(tokenStr string) (*Claims, error) {
-	t, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (any, error) {
+// AccessTTLSeconds implements port.TokenManager.
+func (m *Manager) AccessTTLSeconds() int64 {
+	return int64(m.accessTTL.Seconds())
+}
+
+// ParseAccessToken implements port.TokenParser.
+func (m *Manager) ParseAccessToken(tokenStr string) (*port.ParsedToken, error) {
+	t, err := jwt.ParseWithClaims(tokenStr, &claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
@@ -87,19 +95,21 @@ func (m *Manager) ParseAccessToken(tokenStr string) (*Claims, error) {
 		return nil, err
 	}
 
-	claims, ok := t.Claims.(*Claims)
+	c, ok := t.Claims.(*claims)
 	if !ok || !t.Valid {
 		return nil, fmt.Errorf("invalid token claims")
 	}
-	return claims, nil
+
+	return &port.ParsedToken{
+		Subject: c.Subject,
+		Email:   c.Email,
+		Role:    c.Role,
+	}, nil
 }
 
+// JWKS implements port.JWKSProvider.
 func (m *Manager) JWKS() []byte {
 	return m.jwksJSON
-}
-
-func (m *Manager) AccessTTLSeconds() int64 {
-	return int64(m.accessTTL.Seconds())
 }
 
 func parsePrivateKey(pemStr string) (*rsa.PrivateKey, error) {
@@ -109,7 +119,6 @@ func parsePrivateKey(pemStr string) (*rsa.PrivateKey, error) {
 	}
 	key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	if err != nil {
-		// fallback PKCS1
 		return x509.ParsePKCS1PrivateKey(block.Bytes)
 	}
 	rsaKey, ok := key.(*rsa.PrivateKey)
@@ -152,11 +161,6 @@ func buildJWKS(pub *rsa.PublicKey) ([]byte, error) {
 	}
 
 	return json.Marshal(jwks{Keys: []jwk{{
-		Kty: "RSA",
-		Use: "sig",
-		Alg: "RS256",
-		Kid: "1",
-		N:   n,
-		E:   e,
+		Kty: "RSA", Use: "sig", Alg: "RS256", Kid: "1", N: n, E: e,
 	}}})
 }

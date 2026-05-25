@@ -1,11 +1,11 @@
-package repository
+package port
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/leenwood/market-auth-service/internal/domain"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
 )
 
 type UserRepository interface {

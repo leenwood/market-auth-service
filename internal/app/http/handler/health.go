@@ -13,17 +13,15 @@ func (h *Handler) Health(c *gin.Context) {
 
 func (h *Handler) Ready(c *gin.Context) {
 	ctx := c.Request.Context()
-
-	if err := h.db.Ping(ctx); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "db unavailable", "error": err.Error()})
-		return
+	for _, p := range h.pingers {
+		if err := p.Check.Ping(ctx); err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": p.Name + " unavailable",
+				"error":  err.Error(),
+			})
+			return
+		}
 	}
-
-	if err := h.redis.Ping(ctx).Err(); err != nil {
-		c.JSON(http.StatusServiceUnavailable, gin.H{"status": "redis unavailable", "error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"status": "ready"})
 }
 
@@ -32,5 +30,5 @@ func (h *Handler) Metrics() gin.HandlerFunc {
 }
 
 func (h *Handler) JWKS(c *gin.Context) {
-	c.Data(http.StatusOK, "application/json", h.tokenManager.JWKS())
+	c.Data(http.StatusOK, "application/json", h.jwks.JWKS())
 }

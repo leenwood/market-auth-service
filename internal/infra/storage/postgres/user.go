@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leenwood/market-auth-service/internal/domain"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
 )
 
 type UserRepository struct {
@@ -26,7 +26,7 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 		user.ID, user.Email, user.Name, user.PasswordHash, user.Role, user.CreatedAt, user.UpdatedAt,
 	)
-	if err != nil && isUniqueViolation(err) {
+	if isUniqueViolation(err) {
 		return domain.ErrEmailTaken
 	}
 	return err

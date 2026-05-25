@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/leenwood/market-auth-service/internal/domain"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
 )
 
 type registerRequest struct {
@@ -30,7 +30,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.Register(c.Request.Context(), req.Email, req.Password, req.Name)
+	user, err := h.auth.Register(c.Request.Context(), req.Email, req.Password, req.Name)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailTaken) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -50,7 +50,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	pair, err := h.service.Login(c.Request.Context(), req.Email, req.Password)
+	pair, err := h.auth.Login(c.Request.Context(), req.Email, req.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidCredentials) || errors.Is(err, domain.ErrUserDeleted) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -60,7 +60,7 @@ func (h *Handler) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, tokenResponse(pair))
+	c.JSON(http.StatusOK, toTokenResponse(pair))
 }
 
 func (h *Handler) Refresh(c *gin.Context) {
@@ -70,7 +70,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	pair, err := h.service.Refresh(c.Request.Context(), req.RefreshToken)
+	pair, err := h.auth.Refresh(c.Request.Context(), req.RefreshToken)
 	if err != nil {
 		if errors.Is(err, domain.ErrTokenNotFound) || errors.Is(err, domain.ErrUserDeleted) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -80,7 +80,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, tokenResponse(pair))
+	c.JSON(http.StatusOK, toTokenResponse(pair))
 }
 
 func (h *Handler) Logout(c *gin.Context) {
@@ -90,7 +90,7 @@ func (h *Handler) Logout(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Logout(c.Request.Context(), req.RefreshToken); err != nil {
+	if err := h.auth.Logout(c.Request.Context(), req.RefreshToken); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		return
 	}
@@ -99,9 +99,9 @@ func (h *Handler) Logout(c *gin.Context) {
 }
 
 func (h *Handler) Me(c *gin.Context) {
-	userID := getUserID(c)
+	userID := subjectFromCtx(c)
 
-	user, err := h.service.GetProfile(c.Request.Context(), userID)
+	user, err := h.auth.GetProfile(c.Request.Context(), userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrUserDeleted) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -115,9 +115,9 @@ func (h *Handler) Me(c *gin.Context) {
 }
 
 func (h *Handler) DeleteMe(c *gin.Context) {
-	userID := getUserID(c)
+	userID := subjectFromCtx(c)
 
-	if err := h.service.DeleteAccount(c.Request.Context(), userID); err != nil {
+	if err := h.auth.DeleteAccount(c.Request.Context(), userID); err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
