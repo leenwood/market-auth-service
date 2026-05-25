@@ -1,3 +1,18 @@
+// Package main is the auth-service HTTP server entrypoint.
+//
+// @title           Auth Service API
+// @version         1.0
+// @description     Authentication and authorization service for the marketplace.
+// @contact.name    leenwood
+// @contact.email   george200135@gmail.com
+// @host            localhost:8081
+// @BasePath        /
+// @schemes         http https
+//
+// @securityDefinitions.apikey BearerAuth
+// @in              header
+// @name            Authorization
+// @description     Paste your JWT access token: Bearer <token>
 package main
 
 import (

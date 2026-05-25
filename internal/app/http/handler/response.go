@@ -8,22 +8,29 @@ import (
 	"github.com/leenwood/market-auth-service/internal/core/usecase"
 )
 
-type userResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Email     string    `json:"email"`
-	Name      string    `json:"name"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+// UserResponse is returned by /register and /me.
+type UserResponse struct {
+	ID        uuid.UUID `json:"id"         example:"550e8400-e29b-41d4-a716-446655440000"`
+	Email     string    `json:"email"      example:"user@example.com"`
+	Name      string    `json:"name"       example:"Ivan Ivanov"`
+	Role      string    `json:"role"       example:"buyer"`
+	CreatedAt time.Time `json:"created_at" example:"2024-01-15T10:00:00Z"`
 }
 
-type tokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresIn    int64  `json:"expires_in"`
+// TokenResponse is returned by /login and /refresh.
+type TokenResponse struct {
+	AccessToken  string `json:"access_token"  example:"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	RefreshToken string `json:"refresh_token" example:"dGhpcyBpcyBhIHJlZnJlc2ggdG9rZW4"`
+	ExpiresIn    int64  `json:"expires_in"    example:"900"`
 }
 
-func toUserResponse(u *domain.User) userResponse {
-	return userResponse{
+// ErrorResponse is the standard error body.
+type ErrorResponse struct {
+	Error string `json:"error" example:"email already registered"`
+}
+
+func toUserResponse(u *domain.User) UserResponse {
+	return UserResponse{
 		ID:        u.ID,
 		Email:     u.Email,
 		Name:      u.Name,
@@ -32,8 +39,8 @@ func toUserResponse(u *domain.User) userResponse {
 	}
 }
 
-func toTokenResponse(p *usecase.TokenPair) tokenResponse {
-	return tokenResponse{
+func toTokenResponse(p *usecase.TokenPair) TokenResponse {
+	return TokenResponse{
 		AccessToken:  p.AccessToken,
 		RefreshToken: p.RefreshToken,
 		ExpiresIn:    p.ExpiresIn,

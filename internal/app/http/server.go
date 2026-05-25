@@ -5,6 +5,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
+	_ "github.com/leenwood/market-auth-service/docs" // register generated swagger spec
 	"github.com/leenwood/market-auth-service/internal/app/http/handler"
 	"github.com/leenwood/market-auth-service/internal/app/http/middleware"
 	"github.com/leenwood/market-auth-service/internal/platform/metrics"
@@ -27,11 +31,14 @@ func NewServer(cfg Config, h *handler.Handler, m *metrics.Metrics, authMiddlewar
 	engine.Use(gin.Recovery())
 	engine.Use(middleware.Prometheus(m))
 
+	// system
 	engine.GET("/health", h.Health)
 	engine.GET("/ready", h.Ready)
 	engine.GET("/metrics", h.Metrics())
 	engine.GET("/.well-known/jwks.json", h.JWKS)
+	engine.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	// auth API
 	v1 := engine.Group("/api/v1/auth")
 	{
 		v1.POST("/register", h.Register)

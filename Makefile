@@ -1,4 +1,4 @@
-.PHONY: build run test lint migrate-up migrate-down generate-keys docker-up docker-down
+.PHONY: build run test lint migrate-up migrate-down generate-keys docker-up docker-down swag seed
 
 build:
 	go build -o bin/server ./cmd/server
@@ -30,6 +30,12 @@ docker-up:
 
 docker-down:
 	docker compose down -v
+
+swag:
+	swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+
+seed:
+	go run ./cmd/seed
 
 tidy:
 	go mod tidy
