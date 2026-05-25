@@ -8,7 +8,7 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	_ "github.com/leenwood/market-auth-service/docs" // register generated swagger spec
+	_ "github.com/leenwood/market-auth-service/docs/swagger" // register generated swagger spec
 	"github.com/leenwood/market-auth-service/internal/app/http/handler"
 	"github.com/leenwood/market-auth-service/internal/app/http/middleware"
 	"github.com/leenwood/market-auth-service/internal/platform/metrics"

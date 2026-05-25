@@ -29,7 +29,7 @@ tasks:
   swag:
     desc: Regenerate Swagger docs from annotations
     cmds:
-      - swag init -g cmd/server/main.go -o docs --parseDependency --parseInternal
+      - swag init -g cmd/server/main.go -o docs/swagger --parseDependency --parseInternal
 
   seed:
     desc: Seed the database with test users (requires DATABASE_DSN)
