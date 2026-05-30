@@ -6,11 +6,17 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /bin/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/server  ./cmd/server  && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/migrate ./cmd/migrate && \
+    CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /bin/seed    ./cmd/seed
 
-FROM gcr.io/distroless/static-debian12
+FROM scratch
 
-COPY --from=builder /bin/server /server
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /bin/server  /server
+COPY --from=builder /bin/migrate /migrate
+COPY --from=builder /bin/seed    /seed
 
 EXPOSE 8081
+
 ENTRYPOINT ["/server"]
