@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -17,7 +16,9 @@ import (
 	infratoken "github.com/leenwood/market-auth-service/internal/infra/token"
 	infrapostgres "github.com/leenwood/market-auth-service/internal/infra/storage/postgres"
 	infraredis "github.com/leenwood/market-auth-service/internal/infra/storage/redis"
+	"github.com/leenwood/market-auth-service/internal/platform/logger"
 	"github.com/leenwood/market-auth-service/internal/platform/metrics"
+	"github.com/leenwood/market-auth-service/internal/platform/tracing"
 	goredis "github.com/redis/go-redis/v9"
 )
 
@@ -37,8 +38,18 @@ func RunServer(ctx context.Context) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	logger := buildLogger(cfg)
-	slog.SetDefault(logger)
+	log := logger.New(cfg.LogLevel, cfg.LogFormat)
+	slog.SetDefault(log)
+
+	shutdownTracing, err := tracing.Init(ctx, tracing.Config{
+		Enabled:     cfg.OTELEnabled,
+		Exporter:    cfg.OTELExporter,
+		Endpoint:    cfg.OTELEndpoint,
+		ServiceName: cfg.OTELServiceName,
+	})
+	if err != nil {
+		return fmt.Errorf("init tracing: %w", err)
+	}
 
 	db, err := pgxpool.New(ctx, cfg.DatabaseDSN)
 	if err != nil {
@@ -92,16 +103,17 @@ func RunServer(ctx context.Context) error {
 		},
 		h,
 		m,
+		log,
 		middleware.Auth(tokenManager),
 	)
 
-	return runWithGracefulShutdown(ctx, srv, logger)
+	return runWithGracefulShutdown(ctx, srv, log, shutdownTracing)
 }
 
-func runWithGracefulShutdown(ctx context.Context, srv *http.Server, logger *slog.Logger) error {
+func runWithGracefulShutdown(ctx context.Context, srv *http.Server, log *slog.Logger, shutdownTracing tracing.ShutdownFunc) error {
 	serverErr := make(chan error, 1)
 	go func() {
-		logger.Info("server started", "addr", srv.Addr)
+		log.Info("server started", "addr", srv.Addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
@@ -111,7 +123,7 @@ func runWithGracefulShutdown(ctx context.Context, srv *http.Server, logger *slog
 	case err := <-serverErr:
 		return fmt.Errorf("server error: %w", err)
 	case <-ctx.Done():
-		logger.Info("shutdown signal received")
+		log.Info("shutdown signal received")
 	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -121,23 +133,9 @@ func runWithGracefulShutdown(ctx context.Context, srv *http.Server, logger *slog
 		return fmt.Errorf("graceful shutdown: %w", err)
 	}
 
-	logger.Info("server stopped")
+	_ = shutdownTracing(shutdownCtx)
+
+	log.Info("server stopped")
 	return nil
 }
 
-func buildLogger(cfg *internal.Config) *slog.Logger {
-	level := slog.LevelInfo
-	switch cfg.LogLevel {
-	case "debug":
-		level = slog.LevelDebug
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	}
-	opts := &slog.HandlerOptions{Level: level}
-	if cfg.LogFormat == "text" {
-		return slog.New(slog.NewTextHandler(os.Stdout, opts))
-	}
-	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
-}

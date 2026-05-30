@@ -1,6 +1,7 @@
 package apphttp
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -22,14 +23,15 @@ type Config struct {
 	Debug        bool
 }
 
-func NewServer(cfg Config, h *handler.Handler, m *metrics.Metrics, authMiddleware gin.HandlerFunc) *http.Server {
+func NewServer(cfg Config, h *handler.Handler, m *metrics.Metrics, log *slog.Logger, authMiddleware gin.HandlerFunc) *http.Server {
 	if !cfg.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	engine := gin.New()
 	engine.Use(gin.Recovery())
-	engine.Use(middleware.Prometheus(m))
+	engine.Use(middleware.RequestID())
+	engine.Use(middleware.Logger(log, m))
 
 	// system
 	engine.GET("/health", h.Health)
