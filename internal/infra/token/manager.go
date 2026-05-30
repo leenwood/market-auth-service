@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/leenwood/market-auth-service/internal/core/domain"
 	"github.com/leenwood/market-auth-service/internal/core/port"
 )
 
@@ -26,10 +27,11 @@ type Manager struct {
 	privateKey *rsa.PrivateKey
 	publicKey  *rsa.PublicKey
 	accessTTL  time.Duration
+	guestTTL   time.Duration
 	jwksJSON   []byte
 }
 
-func NewManager(privatePEM, publicPEM string, accessTTL time.Duration) (*Manager, error) {
+func NewManager(privatePEM, publicPEM string, accessTTL, guestTTL time.Duration) (*Manager, error) {
 	priv, err := parsePrivateKey(privatePEM)
 	if err != nil {
 		return nil, fmt.Errorf("parse private key: %w", err)
@@ -44,6 +46,7 @@ func NewManager(privatePEM, publicPEM string, accessTTL time.Duration) (*Manager
 		privateKey: priv,
 		publicKey:  pub,
 		accessTTL:  accessTTL,
+		guestTTL:   guestTTL,
 	}
 
 	m.jwksJSON, err = buildJWKS(pub)
@@ -54,8 +57,8 @@ func NewManager(privatePEM, publicPEM string, accessTTL time.Duration) (*Manager
 	return m, nil
 }
 
-// IssueAccessToken implements port.TokenManager.
-func (m *Manager) IssueAccessToken(userID uuid.UUID, email, role string) (string, error) {
+// issueToken is the shared JWT signing helper.
+func (m *Manager) issueToken(userID uuid.UUID, email, role string, ttl time.Duration) (string, error) {
 	now := time.Now()
 	c := claims{
 		Email: email,
@@ -63,10 +66,25 @@ func (m *Manager) IssueAccessToken(userID uuid.UUID, email, role string) (string
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   userID.String(),
 			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(m.accessTTL)),
+			ExpiresAt: jwt.NewNumericDate(now.Add(ttl)),
 		},
 	}
 	return jwt.NewWithClaims(jwt.SigningMethodRS256, c).SignedString(m.privateKey)
+}
+
+// IssueAccessToken implements port.TokenManager.
+func (m *Manager) IssueAccessToken(userID uuid.UUID, email, role string) (string, error) {
+	return m.issueToken(userID, email, role, m.accessTTL)
+}
+
+// IssueGuestToken implements port.TokenManager.
+func (m *Manager) IssueGuestToken(guestID uuid.UUID) (string, error) {
+	return m.issueToken(guestID, "", domain.RoleGuest, m.guestTTL)
+}
+
+// GuestTTLSeconds implements port.TokenManager.
+func (m *Manager) GuestTTLSeconds() int64 {
+	return int64(m.guestTTL.Seconds())
 }
 
 // IssueRefreshToken implements port.TokenManager.

@@ -39,6 +39,12 @@ type TokenPair struct {
 	ExpiresIn    int64
 }
 
+type GuestTokenResponse struct {
+	AccessToken string
+	GuestUserID string
+	ExpiresIn   int64
+}
+
 func (uc *AuthUseCase) Register(ctx context.Context, email, password, name string) (*domain.User, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -117,6 +123,22 @@ func (uc *AuthUseCase) GetProfile(ctx context.Context, userID uuid.UUID) (*domai
 
 func (uc *AuthUseCase) DeleteAccount(ctx context.Context, userID uuid.UUID) error {
 	return uc.users.SoftDelete(ctx, userID)
+}
+
+func (uc *AuthUseCase) IssueGuestToken(_ context.Context, existingID *uuid.UUID) (*GuestTokenResponse, error) {
+	guestID := uuid.New()
+	if existingID != nil {
+		guestID = *existingID
+	}
+	token, err := uc.tm.IssueGuestToken(guestID)
+	if err != nil {
+		return nil, fmt.Errorf("issue guest token: %w", err)
+	}
+	return &GuestTokenResponse{
+		AccessToken: token,
+		GuestUserID: guestID.String(),
+		ExpiresIn:   uc.tm.GuestTTLSeconds(),
+	}, nil
 }
 
 func (uc *AuthUseCase) issuePair(ctx context.Context, user *domain.User) (*TokenPair, error) {

@@ -24,6 +24,13 @@ type TokenResponse struct {
 	ExpiresIn    int64  `json:"expires_in"    example:"900"`
 }
 
+// GuestTokenResponse is returned by /guest.
+type GuestTokenResponse struct {
+	AccessToken string `json:"access_token"  example:"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."`
+	GuestUserID string `json:"guest_user_id" example:"550e8400-e29b-41d4-a716-446655440000"`
+	ExpiresIn   int64  `json:"expires_in"    example:"604800"`
+}
+
 // ErrorResponse is the standard error body.
 type ErrorResponse struct {
 	Error string `json:"error" example:"email already registered"`

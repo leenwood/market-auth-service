@@ -74,7 +74,7 @@ func RunServer(ctx context.Context) error {
 	}
 	slog.Info("redis connected")
 
-	tokenManager, err := infratoken.NewManager(cfg.JWTPrivateKey, cfg.JWTPublicKey, cfg.AccessTokenTTL)
+	tokenManager, err := infratoken.NewManager(cfg.JWTPrivateKey, cfg.JWTPublicKey, cfg.AccessTokenTTL, cfg.GuestTokenTTL)
 	if err != nil {
 		return fmt.Errorf("init token manager: %w", err)
 	}

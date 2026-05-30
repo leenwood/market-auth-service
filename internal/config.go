@@ -16,6 +16,7 @@ type Config struct {
 	JWTPublicKey     string
 	AccessTokenTTL   time.Duration
 	RefreshTokenTTL  time.Duration
+	GuestTokenTTL    time.Duration
 	HTTPAddr         string
 	HTTPReadTimeout  time.Duration
 	HTTPWriteTimeout time.Duration
@@ -67,6 +68,9 @@ func Load() (*Config, error) {
 	}
 	if cfg.RefreshTokenTTL, err = time.ParseDuration(getEnv("REFRESH_TOKEN_TTL", "720h")); err != nil {
 		return nil, fmt.Errorf("REFRESH_TOKEN_TTL invalid: %w", err)
+	}
+	if cfg.GuestTokenTTL, err = time.ParseDuration(getEnv("GUEST_TOKEN_TTL", "24h")); err != nil {
+		return nil, fmt.Errorf("GUEST_TOKEN_TTL invalid: %w", err)
 	}
 	if cfg.HTTPReadTimeout, err = time.ParseDuration(getEnv("HTTP_READ_TIMEOUT", "15s")); err != nil {
 		return nil, fmt.Errorf("HTTP_READ_TIMEOUT invalid: %w", err)

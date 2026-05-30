@@ -5,8 +5,45 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/leenwood/market-auth-service/internal/core/domain"
 )
+
+type guestTokenRequest struct {
+	GuestID string `json:"guest_id"`
+}
+
+// GuestToken godoc
+// @Summary      Issue an anonymous guest token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        request body guestTokenRequest false "Optional existing guest ID"
+// @Success      200  {object}  GuestTokenResponse
+// @Failure      500  {object}  ErrorResponse
+// @Router       /api/v1/auth/guest [post]
+func (h *Handler) GuestToken(c *gin.Context) {
+	var req guestTokenRequest
+	_ = c.ShouldBindJSON(&req)
+
+	var existingID *uuid.UUID
+	if req.GuestID != "" {
+		if id, err := uuid.Parse(req.GuestID); err == nil {
+			existingID = &id
+		}
+	}
+
+	resp, err := h.auth.IssueGuestToken(c.Request.Context(), existingID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "internal server error"})
+		return
+	}
+	c.JSON(http.StatusOK, GuestTokenResponse{
+		AccessToken: resp.AccessToken,
+		GuestUserID: resp.GuestUserID,
+		ExpiresIn:   resp.ExpiresIn,
+	})
+}
 
 // RegisterRequest is the body for POST /register.
 type RegisterRequest struct {

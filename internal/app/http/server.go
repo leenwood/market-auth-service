@@ -47,6 +47,7 @@ func NewServer(cfg Config, h *handler.Handler, m *metrics.Metrics, log *slog.Log
 		v1.POST("/login", h.Login)
 		v1.POST("/refresh", h.Refresh)
 		v1.POST("/logout", h.Logout)
+		v1.POST("/guest", h.GuestToken)
 
 		protected := v1.Group("/")
 		protected.Use(authMiddleware)

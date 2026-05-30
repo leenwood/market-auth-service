@@ -7,6 +7,8 @@ type TokenManager interface {
 	IssueAccessToken(userID uuid.UUID, email, role string) (string, error)
 	IssueRefreshToken() (string, error)
 	AccessTTLSeconds() int64
+	IssueGuestToken(guestID uuid.UUID) (string, error)
+	GuestTTLSeconds() int64
 }
 
 // ParsedToken holds the claims extracted from an access token.
